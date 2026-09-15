@@ -106,12 +106,8 @@ parmId
     ;
 
 stmt
-    : expStmt
-    | compoundStmt
-    | selectStmt
-    | iterStmt
-    | returnStmt
-    | breakStmt
+    : matchedStmt
+    | unmatchedStmt
     ;
 
 expStmt
@@ -133,14 +129,26 @@ stmtList
     | /* empty */
     ;
 
-selectStmt
-    : IF simpleExp THEN stmt
-    | IF simpleExp THEN stmt ELSE stmt
+matchedStmt
+    : IF simpleExp THEN matchedStmt ELSE matchedStmt
+    | expStmt
+    | compoundStmt
+    | matchedIterStmt
+    | returnStmt
+    | breakStmt
     ;
 
-iterStmt
-    : WHILE simpleExp DO stmt
-    | FOR ID ASSIGN iterRange DO stmt
+unmatchedStmt
+    : IF simpleExp THEN matchedStmt
+    | IF simpleExp THEN unmatchedStmt
+    | IF simpleExp THEN matchedStmt ELSE unmatchedStmt
+    | WHILE simpleExp DO unmatchedStmt
+    | FOR ID ASSIGN iterRange DO unmatchedStmt
+    ;
+
+matchedIterStmt
+    : WHILE simpleExp DO matchedStmt
+    | FOR ID ASSIGN iterRange DO matchedStmt
     ;
 
 iterRange
