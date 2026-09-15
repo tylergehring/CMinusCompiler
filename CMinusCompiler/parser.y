@@ -1,12 +1,6 @@
-//bison
+// bison
 
-// Define a Union containing TokenData*
-// Define tokens such as NUMCONST, ID, BOOLCONST, keywords, multi-char operations
-// Write grammar rules. Each should print the tokens line number, class, and values
-// add main()
-
-
-%{ 
+%{
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -19,90 +13,271 @@ extern int yydebug;
 #define YYERROR_VERBOSE
 
 void yyerror(const char *msg) {
-      printf("ERROR(SCANNER): %s\n", msg);
+    printf("ERROR(PARSER): %s\n", msg);
 }
-
-//// any C/C++ functions or globals that might be used in grammar below
-
-
-// -------------------------------------------------------------
 %}
+
+%start program
 
 %union {
     int num;
     TokenData *tokenData;
 };
 
-%token <tokenData> NUMCONST
-%token <tokenData> BOOLCONST
-%token <tokenData> CHARCONST
-%token <tokenData> STRINGCONST
-%token <tokenData> ID
+%token <tokenData> NUMCONST BOOLCONST CHARCONST STRINGCONST ID
 %token <tokenData> SEMI COMMA LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE COLON
 %token <tokenData> INT BOOL CHAR STATIC IF THEN ELSE WHILE DO FOR TO BY RETURN BREAK AND OR NOT
 %token <tokenData> LE GE EQ NE PLUSEQ MINUSEQ MULTEQ DIVEQ PLUSPLUS MINUSMINUS SHL SHR
 %token <tokenData> PLUS MINUS MULT DIV MOD LT GT ASSIGN QUESTION
 
-// -------------------------------------------------------------
 %%
-tokenlist : tokenlist token | token ;
 
-token : NUMCONST  { printf("NUMCONST\n"); }
-      | BOOLCONST { printf("BOOLCONST\n"); }
-      | CHARCONST { printf("CHARCONST\n"); }
-      | STRINGCONST { printf("STRINGCONST\n"); }
-      | ID        { printf("ID\n"); }
-      | SEMI      { printf("SEMI\n"); }
-      | COMMA     { printf("COMMA\n"); }
-      | LPAREN    { printf("LPAREN\n"); }
-      | RPAREN    { printf("RPAREN\n"); }
-      | LBRACKET  { printf("LBRACKET\n"); }
-      | RBRACKET  { printf("RBRACKET\n"); }
-      | LBRACE    { printf("LBRACE\n"); }
-      | RBRACE    { printf("RBRACE\n"); }
-      | COLON     { printf("COLON\n"); }
-      | INT       { printf("INT\n"); }
-      | BOOL      { printf("BOOL\n"); }
-      | CHAR      { printf("CHAR\n"); }
-      | STATIC    { printf("STATIC\n"); }
-      | IF        { printf("IF\n"); }
-      | THEN      { printf("THEN\n"); }
-      | ELSE      { printf("ELSE\n"); }
-      | WHILE     { printf("WHILE\n"); }
-      | DO        { printf("DO\n"); }
-      | FOR       { printf("FOR\n"); }
-      | TO        { printf("TO\n"); }
-      | BY        { printf("BY\n"); }
-      | RETURN    { printf("RETURN\n"); }
-      | BREAK     { printf("BREAK\n"); }
-      | AND       { printf("AND\n"); }
-      | OR        { printf("OR\n"); }
-      | NOT       { printf("NOT\n"); }
-      | LE        { printf("LE\n"); }
-      | GE        { printf("GE\n"); }
-      | EQ        { printf("EQ\n"); }
-      | NE        { printf("NE\n"); }
-      | PLUSEQ    { printf("PLUSEQ\n"); }
-      | MINUSEQ   { printf("MINUSEQ\n"); }
-      | MULTEQ    { printf("MULTEQ\n"); }
-      | DIVEQ     { printf("DIVEQ\n"); }
-      | PLUSPLUS  { printf("PLUSPLUS\n"); }
-      | MINUSMINUS { printf("MINUSMINUS\n"); }
-      | SHL       { printf("SHL\n"); }
-      | SHR       { printf("SHR\n"); }
-      | PLUS      { printf("+\n"); }
-      | MINUS     { printf("-\n"); }
-      | MULT      { printf("*\n"); }
-      | DIV       { printf("/\n"); }
-      | MOD       { printf("%%\n"); }
-      | LT        { printf("<\n"); }
-      | GT        { printf(">\n"); }
-      | ASSIGN    { printf("=\n"); }
-      | QUESTION  { printf("?\n"); }
-      ;
+program
+    : declList
+    ;
 
+declList
+    : declList decl
+    | decl
+    ;
 
-// -------------------------------------------------------------
+decl
+    : varDecl
+    | funDecl
+    ;
+
+varDecl
+    : typeSpec varDeclList SEMI
+    ;
+
+scopedVarDecl
+    : STATIC typeSpec varDeclList SEMI
+    | typeSpec varDeclList SEMI
+    ;
+
+varDeclList
+    : varDeclList COMMA varDeclInit
+    | varDeclInit
+    ;
+
+varDeclInit
+    : varDeclId
+    | varDeclId COLON simpleExp
+    ;
+
+varDeclId
+    : ID
+    | ID LBRACKET NUMCONST RBRACKET
+    ;
+
+typeSpec
+    : INT
+    | BOOL
+    | CHAR
+    ;
+
+funDecl
+    : typeSpec ID LPAREN parms RPAREN stmt
+    | ID LPAREN parms RPAREN stmt
+    ;
+
+parms
+    : parmList
+    | /* empty */
+    ;
+
+parmList
+    : parmList SEMI parmTypeList
+    | parmTypeList
+    ;
+
+parmTypeList
+    : typeSpec parmIdList
+    ;
+
+parmIdList
+    : parmIdList COMMA parmId
+    | parmId
+    ;
+
+parmId
+    : ID
+    | ID LBRACKET RBRACKET
+    ;
+
+stmt
+    : expStmt
+    | compoundStmt
+    | selectStmt
+    | iterStmt
+    | returnStmt
+    | breakStmt
+    ;
+
+expStmt
+    : exp SEMI
+    | SEMI
+    ;
+
+compoundStmt
+    : LBRACE localDecls stmtList RBRACE
+    ;
+
+localDecls
+    : localDecls scopedVarDecl
+    | /* empty */
+    ;
+
+stmtList
+    : stmtList stmt
+    | /* empty */
+    ;
+
+selectStmt
+    : IF simpleExp THEN stmt
+    | IF simpleExp THEN stmt ELSE stmt
+    ;
+
+iterStmt
+    : WHILE simpleExp DO stmt
+    | FOR ID ASSIGN iterRange DO stmt
+    ;
+
+iterRange
+    : simpleExp
+    | simpleExp TO simpleExp
+    | simpleExp TO simpleExp BY simpleExp
+    ;
+
+returnStmt
+    : RETURN SEMI
+    | RETURN exp SEMI
+    ;
+
+breakStmt
+    : BREAK SEMI
+    | BREAK exp SEMI
+    ;
+
+exp
+    : mutable ASSIGN exp
+    | mutable PLUSEQ exp
+    | mutable MINUSEQ exp
+    | mutable MULTEQ exp
+    | mutable DIVEQ exp
+    | mutable PLUSPLUS
+    | mutable MINUSMINUS
+    | simpleExp
+    ;
+
+simpleExp
+    : simpleExp OR andExp
+    | andExp
+    ;
+
+andExp
+    : andExp AND unaryRelExp
+    | unaryRelExp
+    ;
+
+unaryRelExp
+    : NOT unaryRelExp
+    | relExp
+    ;
+
+relExp
+    : minmaxExp relop minmaxExp
+    | minmaxExp
+    ;
+
+relop
+    : LE
+    | LT
+    | GT
+    | GE
+    | EQ
+    | NE
+    ;
+
+minmaxExp
+    : minmaxExp minmaxop sumExp
+    | sumExp
+    ;
+
+minmaxop
+    : SHL
+    | SHR
+    ;
+
+sumExp
+    : sumExp sumop mulExp
+    | mulExp
+    ;
+
+sumop
+    : PLUS
+    | MINUS
+    ;
+
+mulExp
+    : mulExp mulop unaryExp
+    | unaryExp
+    ;
+
+mulop
+    : MULT
+    | DIV
+    | MOD
+    ;
+
+unaryExp
+    : unaryop unaryExp
+    | factor
+    ;
+
+unaryop
+    : MINUS
+    | MULT
+    | QUESTION
+    ;
+
+factor
+    : immutable
+    | mutable
+    ;
+
+mutable
+    : ID
+    | ID LBRACKET exp RBRACKET
+    ;
+
+immutable
+    : LPAREN exp RPAREN
+    | call
+    | constant
+    ;
+
+call
+    : ID LPAREN args RPAREN
+    ;
+
+args
+    : argList
+    | /* empty */
+    ;
+
+argList
+    : argList COMMA exp
+    | exp
+    ;
+
+constant
+    : NUMCONST
+    | CHARCONST
+    | STRINGCONST
+    | BOOLCONST
+    ;
+
 %%
 
 int main(int argc, char *argv[]) {
@@ -113,16 +288,16 @@ int main(int argc, char *argv[]) {
             perror(argv[1]);
             return 1;
         }
-    }
-    else if (argc > 2) {
+    } else if (argc > 2) {
         fprintf(stderr, "usage: c- [filename]\n");
         return 1;
     }
 
-    yyparse();
+    int result = yyparse();
 
     if (yyin != NULL && yyin != stdin) {
         fclose(yyin);
     }
-}
 
+    return result;
+}
