@@ -22,7 +22,29 @@ void yyerror(const char *msg) {
       printf("ERROR(SCANNER): %s\n", msg);
 }
 
-//// any C/C++ functions or globals that might be used in grammar below
+static void printToken(TokenData *tokenData, const char *tokenName) {
+    printf("Line %d Token: %s\n", tokenData->linenum, tokenName);
+}
+
+static void printNumber(TokenData *tokenData, const char *tokenName) {
+    printf("Line %d Token: %s Value: %lld Input: %s\n",
+           tokenData->linenum, tokenName, tokenData->nvalue, tokenData->tokenstr);
+}
+
+static void printIdentifier(TokenData *tokenData) {
+    printf("Line %d Token: ID Value: %s\n", tokenData->linenum, tokenData->svalue);
+}
+
+static void printCharacter(TokenData *tokenData) {
+    printf("Line %d Token: CHARCONST Value: '%c' Input: %s\n",
+           tokenData->linenum, tokenData->cvalue, tokenData->tokenstr);
+}
+
+static void printString(TokenData *tokenData) {
+    printf("Line %d Token: STRINGCONST Value: \"", tokenData->linenum);
+    fwrite(tokenData->svalue, 1, tokenData->nvalue, stdout);
+    printf("\" Len: %lld Input: %s\n", tokenData->nvalue, tokenData->tokenstr);
+}
 
 
 // -------------------------------------------------------------
@@ -47,58 +69,58 @@ void yyerror(const char *msg) {
 %%
 tokenlist : tokenlist token | token ;
 
-token : NUMCONST  { printf("NUMCONST\n"); }
-      | BOOLCONST { printf("BOOLCONST\n"); }
-      | CHARCONST { printf("CHARCONST\n"); }
-      | STRINGCONST { printf("STRINGCONST\n"); }
-      | ID        { printf("ID\n"); }
-      | SEMI      { printf("SEMI\n"); }
-      | COMMA     { printf("COMMA\n"); }
-      | LPAREN    { printf("LPAREN\n"); }
-      | RPAREN    { printf("RPAREN\n"); }
-      | LBRACKET  { printf("LBRACKET\n"); }
-      | RBRACKET  { printf("RBRACKET\n"); }
-      | LBRACE    { printf("LBRACE\n"); }
-      | RBRACE    { printf("RBRACE\n"); }
-      | COLON     { printf("COLON\n"); }
-      | INT       { printf("INT\n"); }
-      | BOOL      { printf("BOOL\n"); }
-      | CHAR      { printf("CHAR\n"); }
-      | STATIC    { printf("STATIC\n"); }
-      | IF        { printf("IF\n"); }
-      | THEN      { printf("THEN\n"); }
-      | ELSE      { printf("ELSE\n"); }
-      | WHILE     { printf("WHILE\n"); }
-      | DO        { printf("DO\n"); }
-      | FOR       { printf("FOR\n"); }
-      | TO        { printf("TO\n"); }
-      | BY        { printf("BY\n"); }
-      | RETURN    { printf("RETURN\n"); }
-      | BREAK     { printf("BREAK\n"); }
-      | AND       { printf("AND\n"); }
-      | OR        { printf("OR\n"); }
-      | NOT       { printf("NOT\n"); }
-      | LE        { printf("LE\n"); }
-      | GE        { printf("GE\n"); }
-      | EQ        { printf("EQ\n"); }
-      | NE        { printf("NE\n"); }
-      | PLUSEQ    { printf("PLUSEQ\n"); }
-      | MINUSEQ   { printf("MINUSEQ\n"); }
-      | MULTEQ    { printf("MULTEQ\n"); }
-      | DIVEQ     { printf("DIVEQ\n"); }
-      | PLUSPLUS  { printf("PLUSPLUS\n"); }
-      | MINUSMINUS { printf("MINUSMINUS\n"); }
-      | SHL       { printf("SHL\n"); }
-      | SHR       { printf("SHR\n"); }
-      | PLUS      { printf("+\n"); }
-      | MINUS     { printf("-\n"); }
-      | MULT      { printf("*\n"); }
-      | DIV       { printf("/\n"); }
-      | MOD       { printf("%%\n"); }
-      | LT        { printf("<\n"); }
-      | GT        { printf(">\n"); }
-      | ASSIGN    { printf("=\n"); }
-      | QUESTION  { printf("?\n"); }
+token : NUMCONST   { printNumber($1, "NUMCONST"); }
+    | BOOLCONST  { printNumber($1, "BOOLCONST"); }
+    | CHARCONST  { printCharacter($1); }
+    | STRINGCONST { printString($1); }
+    | ID         { printIdentifier($1); }
+    | SEMI       { printToken($1, ";"); }
+    | COMMA      { printToken($1, ","); }
+    | LPAREN     { printToken($1, "("); }
+    | RPAREN     { printToken($1, ")"); }
+    | LBRACKET   { printToken($1, "["); }
+    | RBRACKET   { printToken($1, "]"); }
+    | LBRACE     { printToken($1, "{"); }
+    | RBRACE     { printToken($1, "}"); }
+    | COLON      { printToken($1, ":"); }
+    | INT        { printToken($1, "INT"); }
+    | BOOL       { printToken($1, "BOOL"); }
+    | CHAR       { printToken($1, "CHAR"); }
+    | STATIC     { printToken($1, "STATIC"); }
+    | IF         { printToken($1, "IF"); }
+    | THEN       { printToken($1, "THEN"); }
+    | ELSE       { printToken($1, "ELSE"); }
+    | WHILE      { printToken($1, "WHILE"); }
+    | DO         { printToken($1, "DO"); }
+    | FOR        { printToken($1, "FOR"); }
+    | TO         { printToken($1, "TO"); }
+    | BY         { printToken($1, "BY"); }
+    | RETURN     { printToken($1, "RETURN"); }
+    | BREAK      { printToken($1, "BREAK"); }
+    | AND        { printToken($1, "AND"); }
+    | OR         { printToken($1, "OR"); }
+    | NOT        { printToken($1, "NOT"); }
+    | LE         { printToken($1, "LEQ"); }
+    | GE         { printToken($1, "GEQ"); }
+    | EQ         { printToken($1, "EQ"); }
+    | NE         { printToken($1, "NEQ"); }
+    | PLUSEQ     { printToken($1, "ADDASS"); }
+    | MINUSEQ    { printToken($1, "SUBASS"); }
+    | MULTEQ     { printToken($1, "MULASS"); }
+    | DIVEQ      { printToken($1, "DIVASS"); }
+    | PLUSPLUS   { printToken($1, "INC"); }
+    | MINUSMINUS { printToken($1, "DEC"); }
+    | SHL        { printToken($1, "MIN"); }
+    | SHR        { printToken($1, "MAX"); }
+    | PLUS       { printToken($1, "+"); }
+    | MINUS      { printToken($1, "-"); }
+    | MULT       { printToken($1, "*"); }
+    | DIV        { printToken($1, "/"); }
+    | MOD        { printToken($1, "%"); }
+    | LT         { printToken($1, "<"); }
+    | GT         { printToken($1, ">"); }
+    | ASSIGN     { printToken($1, "="); }
+        | QUESTION   { printToken($1, "?"); }
       ;
 
 

@@ -1,5 +1,5 @@
 c-: parser.tab.o lex.yy.o
-	g++ -o c- parser.tab.o lex.yy.o -lfl
+	g++ -o c- parser.tab.o lex.yy.o
 
 parser.tab.c parser.tab.h: parser.y
 	bison -d parser.y

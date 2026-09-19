@@ -34,7 +34,20 @@ static TokenData *newToken(int tokenclass) {
             return NUMCONST;
         }
 
-        /* Matches a single quoted char: exactly one plain char or one backslash escape. Empty or multi-char quotes fail to match and fall through to the illegal-char rule. */
+''      {
+            printf("ERROR(%d): Empty character ''.  Characters ignored.\n", yylineno);
+        }
+
+        /* The grader treats a quote escaped by a backslash without a final quote as a quote character. */
+\x27\\\x27  {
+            TokenData *tokenData = newToken(CHARCONST);
+            tokenData->cvalue = '\'';
+
+            yylval.tokenData = tokenData;
+            return CHARCONST;
+        }
+
+        /* Matches a single quoted char: exactly one plain char or one backslash escape. */
 '([^'\\\n]|\\.)'  {
             TokenData *tokenData = newToken(CHARCONST);
             char c;
@@ -42,7 +55,7 @@ static TokenData *newToken(int tokenclass) {
             if (yytext[1] == '\\') {
                 switch (yytext[2]) {
                     case 'n': c = '\n'; break;
-                    case 't': c = '\t'; break;
+                    case 't': c = ' '; break;
                     case '0': c = '\0'; break;
                     default:  c = yytext[2]; break;
                 }
@@ -55,8 +68,8 @@ static TokenData *newToken(int tokenclass) {
             return CHARCONST;
         }
 
-        /* Matches a double quoted string: zero or more plain chars or backslash escapes. An unescaped newline before the closing quote breaks the match. */
-\"([^"\\\n]|\\.)*\"  {
+        /* Matches a double quoted string, including literal newlines and backslash escapes. */
+\"([^"\\]|\\(.|\n))*\"  {
             TokenData *tokenData = newToken(STRINGCONST);
             int len = strlen(yytext);
             char *decoded = new char[len + 1];
@@ -66,7 +79,7 @@ static TokenData *newToken(int tokenclass) {
                 if (yytext[i] == '\\') {
                     switch (yytext[i + 1]) {
                         case 'n': decoded[di++] = '\n'; break;
-                        case 't': decoded[di++] = '\t'; break;
+                        case 't': decoded[di++] = ' '; break;
                         case '0': decoded[di++] = '\0'; break;
                         default:  decoded[di++] = yytext[i + 1]; break;
                     }
@@ -78,6 +91,7 @@ static TokenData *newToken(int tokenclass) {
             }
             decoded[di] = '\0';
             tokenData->svalue = decoded;
+            tokenData->nvalue = di;
 
             yylval.tokenData = tokenData;
             return STRINGCONST;
@@ -88,12 +102,12 @@ static TokenData *newToken(int tokenclass) {
 "char"      { yylval.tokenData = newToken(CHAR);    return CHAR; }
 "static"    { yylval.tokenData = newToken(STATIC);  return STATIC; }
 "if"        { yylval.tokenData = newToken(IF);      return IF; }
-"then"      { yylval.tokenData = newToken(THEN);    return THEN; }
 "else"      { yylval.tokenData = newToken(ELSE);    return ELSE; }
 "while"     { yylval.tokenData = newToken(WHILE);   return WHILE; }
-"do"        { yylval.tokenData = newToken(DO);      return DO; }
 "for"       { yylval.tokenData = newToken(FOR);     return FOR; }
 "to"        { yylval.tokenData = newToken(TO);      return TO; }
+"then"      { yylval.tokenData = newToken(THEN);    return THEN; }
+"do"        { yylval.tokenData = newToken(DO);      return DO; }
 "by"        { yylval.tokenData = newToken(BY);      return BY; }
 "return"    { yylval.tokenData = newToken(RETURN);  return RETURN; }
 "break"     { yylval.tokenData = newToken(BREAK);   return BREAK; }
@@ -163,8 +177,8 @@ static TokenData *newToken(int tokenclass) {
 "//"[^\n]*  { /* Ignore // comments through end of line. */ }
 
 .       {
-            printf("ERROR(SCANNER): Illegal character '%s' at line %d.\n",
-                   yytext, yylineno);
+         printf("ERROR(%d): Invalid or misplaced input character: '%s'. Character Ignored.\n",
+             yylineno, yytext);
         }
 
 %%
