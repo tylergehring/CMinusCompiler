@@ -73,6 +73,21 @@ static TokenData *newToken(int tokenclass) {
             }
         }
 
+        /* An escaped quote with no separate closer: the escape itself closes the literal. */
+'\\'  {
+            TokenData *tokenData = newToken(CHARCONST);
+            char *decoded = new char[2];
+            decoded[0] = '\'';
+            decoded[1] = '\0';
+
+            tokenData->cvalue = '\'';
+            tokenData->svalue = decoded;
+            tokenData->nvalue = 1;
+
+            yylval.tokenData = tokenData;
+            return CHARCONST;
+        }
+
         /* Matches a double quoted string through its first unescaped quote. */
     \"([^"\\]|\\.)*\"  {
             TokenData *tokenData = newToken(STRINGCONST);
