@@ -36,8 +36,9 @@ static void printIdentifier(TokenData *tokenData) {
 }
 
 static void printCharacter(TokenData *tokenData) {
-    printf("Line %d Token: CHARCONST Value: '%c' Input: %s\n",
-           tokenData->linenum, tokenData->cvalue, tokenData->tokenstr);
+    printf("Line %d Token: CHARCONST Value: '", tokenData->linenum);
+    fwrite(tokenData->svalue, 1, tokenData->nvalue, stdout);
+    printf("' Input: %s\n", tokenData->tokenstr);
 }
 
 static void printString(TokenData *tokenData) {

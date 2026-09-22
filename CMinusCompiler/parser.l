@@ -6,12 +6,16 @@
 #include "parser.scantype.h"
 #include "parser.tab.h"
 
+// Tracks source line manually; newlines embedded inside multi-line string/char
+// constants do not advance it, matching the reference scanner's line counts.
+static int lineNumber = 1;
+
 // Builds a TokenData with just the fields every token shares; caller fills in the rest.
 static TokenData *newToken(int tokenclass) {
     TokenData *tokenData = new TokenData;
 
     tokenData->tokenclass = tokenclass;
-    tokenData->linenum = yylineno;
+    tokenData->linenum = lineNumber;
     tokenData->tokenstr = strdup(yytext);
     tokenData->cvalue = '\0';
     tokenData->nvalue = 0;
@@ -22,7 +26,6 @@ static TokenData *newToken(int tokenclass) {
 %}
 
 %option noyywrap
-%option yylineno
 
 %%
 
@@ -34,42 +37,44 @@ static TokenData *newToken(int tokenclass) {
             return NUMCONST;
         }
 
-''      {
-            printf("ERROR(%d): Empty character ''.  Characters ignored.\n", yylineno);
-        }
+        /* Matches a char constant with zero or one plain char/escape, never more. */
+'([^'\\]|\\.)?'  {
+            int len = strlen(yytext);
+            char *decoded = new char[len + 1];
+            int di = 0;
 
-        /* The grader treats a quote escaped by a backslash without a final quote as a quote character. */
-\x27\\\x27  {
-            TokenData *tokenData = newToken(CHARCONST);
-            tokenData->cvalue = '\'';
-
-            yylval.tokenData = tokenData;
-            return CHARCONST;
-        }
-
-        /* Matches a single quoted char: exactly one plain char or one backslash escape. */
-'([^'\\\n]|\\.)'  {
-            TokenData *tokenData = newToken(CHARCONST);
-            char c;
-
-            if (yytext[1] == '\\') {
-                switch (yytext[2]) {
-                    case 'n': c = '\n'; break;
-                    case 't': c = ' '; break;
-                    case '0': c = '\0'; break;
-                    default:  c = yytext[2]; break;
+            for (int i = 1; i < len - 1; ) {
+                if (yytext[i] == '\\') {
+                    switch (yytext[i + 1]) {
+                        case 'n': decoded[di++] = '\n'; break;
+                        case 't': decoded[di++] = '\t'; break;
+                        case '0': decoded[di++] = '\0'; break;
+                        default:  decoded[di++] = yytext[i + 1]; break;
+                    }
+                    i += 2;
+                } else {
+                    decoded[di++] = yytext[i];
+                    i += 1;
                 }
-            } else {
-                c = yytext[1];
             }
-            tokenData->cvalue = c;
+            decoded[di] = '\0';
 
-            yylval.tokenData = tokenData;
-            return CHARCONST;
+            if (di == 0) {
+                printf("ERROR(%d): Empty character ''. Characters ignored.\n", lineNumber);
+                delete[] decoded;
+            } else {
+                TokenData *tokenData = newToken(CHARCONST);
+                tokenData->cvalue = decoded[0];
+                tokenData->svalue = decoded;
+                tokenData->nvalue = di;
+
+                yylval.tokenData = tokenData;
+                return CHARCONST;
+            }
         }
 
-        /* Matches a double quoted string, including literal newlines and backslash escapes. */
-\"([^"\\]|\\(.|\n))*\"  {
+        /* Matches a double quoted string through its first unescaped quote. */
+    \"([^"\\]|\\.)*\"  {
             TokenData *tokenData = newToken(STRINGCONST);
             int len = strlen(yytext);
             char *decoded = new char[len + 1];
@@ -79,7 +84,7 @@ static TokenData *newToken(int tokenclass) {
                 if (yytext[i] == '\\') {
                     switch (yytext[i + 1]) {
                         case 'n': decoded[di++] = '\n'; break;
-                        case 't': decoded[di++] = ' '; break;
+                        case 't': decoded[di++] = '\t'; break;
                         case '0': decoded[di++] = '\0'; break;
                         default:  decoded[di++] = yytext[i + 1]; break;
                     }
@@ -114,6 +119,8 @@ static TokenData *newToken(int tokenclass) {
 "and"       { yylval.tokenData = newToken(AND);     return AND; }
 "or"        { yylval.tokenData = newToken(OR);      return OR; }
 "not"       { yylval.tokenData = newToken(NOT);     return NOT; }
+"&&"        { yylval.tokenData = newToken(AND);     return AND; }
+"||"        { yylval.tokenData = newToken(OR);      return OR; }
 
 "true"      {
                 TokenData *tokenData = newToken(BOOLCONST);
@@ -172,13 +179,17 @@ static TokenData *newToken(int tokenclass) {
 "}"     { yylval.tokenData = newToken(RBRACE);   return RBRACE; }
 ":"     { yylval.tokenData = newToken(COLON);    return COLON; }
 
-[ \t\r\n]+  { /* Ignore whitespace. */ }
+[ \t\r\n]+  {
+            for (const char *p = yytext; *p; p++) {
+                if (*p == '\n') lineNumber++;
+            }
+        }
 
 "//"[^\n]*  { /* Ignore // comments through end of line. */ }
 
 .       {
          printf("ERROR(%d): Invalid or misplaced input character: '%s'. Character Ignored.\n",
-             yylineno, yytext);
+             lineNumber, yytext);
         }
 
 %%
